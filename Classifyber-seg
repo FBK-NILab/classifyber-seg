@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, division
+import os
+import time
+import argparse
+import test_classifyber
+
+def main():
+    parser = argparse.ArgumentParser(description="Segment bundles of interest in a tractogram.")
+    parser.add_argument("-tractogram", metavar="filepath", 
+                        help="Tractogram to be segmented", required=True)
+    parser.add_argument("-t1", metavar="filepath", 
+                        help="T1 structural image in the same anatomical space", required=True)
+    parser.add_argument("-config", metavar="filepath", 
+                        help="Configuration file", required=True)
+    args = parser.parse_args()
+
+    t0=time.time()
+
+    indir = os.path.dirname(args.tractogram)
+    outdir = indir + '/tracts_trks'
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    if args.tractogram[-4:] == '.tck':
+    	print("Converting tck to trk...") #needed for segmentation
+    	cmd = "python tck2trk.py %s %s" %(args.t1, args.tractogram)
+    	os.system(cmd)
+    elif args.tractogram[-4:] == '.trk':
+    	print("Converting trk to tck...") #needed for ANTs
+    	cmd = "python trk2tck.py %s" %(args.tractogram)
+    	os.system(cmd)	
+
+    tck_filename = args.tractogram[:-4] + '.tck'
+
+    print("Registration to MNI152...")
+    cmd = "./run_registration.sh %s %s" %(args.t1, tck_filename)
+    os.system(cmd)
+
+    t1=time.time()
+    print("Time elapsed for the registration = %.2f minutes" %((t0-t1)/60))
+    
+    print("Running Classifyber (only test)...")
+    aligned_tractogram = indir + '/track_aligned/track_MNI.tck'
+    cmd = "python test_classifyber.py -static %s -src_dir %s -config %s -out_dir %s" \
+           %(aligned_tractogram, 'results_training', args.config, outdir)
+    os.system(cmd)
+
+    print("Time elapsed for the segmentation = %.2f minutes" %((time.time()-t1)/60))
+    print("Segmentation done.")
+
+
+if __name__ == '__main__':
+    main()
