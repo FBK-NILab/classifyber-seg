@@ -33,6 +33,7 @@ def main():
     	os.system(cmd)	
 
     tck_filename = args.tractogram[:-4] + '.tck'
+    trk_filename = args.tractogram[:-4] + '.trk'
 
     print("Registration to MNI152...")
     cmd = "./run_registration.sh %s %s" %(args.t1, tck_filename)
@@ -43,8 +44,8 @@ def main():
     
     print("Running Classifyber (only test)...")
     aligned_tractogram = indir + '/track_aligned/track_MNI.tck'
-    cmd = "python test_classifyber.py -static %s -src_dir %s -config %s -out_dir %s" \
-           %(aligned_tractogram, 'results_training', args.config, outdir)
+    cmd = "python test_classifyber.py -tr_mni %s -tr_native %s -src_dir %s -config %s -out_dir %s" \
+           %(aligned_tractogram, trk_filename, 'results_training', args.config, outdir)
     os.system(cmd)
 
     print("Time elapsed for the segmentation = %.2f minutes" %((time.time()-t1)/60))

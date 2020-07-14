@@ -35,14 +35,14 @@ def tract_predict(src_dir, superset, tract_name, distance_func=bundles_distances
 	return y_pred
 
 
-def test_multiple_examples(tractogram_fname, src_dir, tract_name_list, out_dir):
+def test_multiple_examples(tr_mni, tr_native, src_dir, tract_name_list, out_dir):
 	"""Code for testing.
 	"""
 	num_prototypes = 100
 	distance_func = bundles_distances_mdf
 	nb_points = 20
 
-	tractogram = nib.streamlines.load(tractogram_fname)
+	tractogram = nib.streamlines.load(tr_mni)
 	tractogram = tractogram.streamlines
 
 	print("Compute kdt and prototypes...")
@@ -59,11 +59,16 @@ def test_multiple_examples(tractogram_fname, src_dir, tract_name_list, out_dir):
 		superset = tractogram[superset_idx_test]
 		y_pred = tract_predict(src_dir, superset, tract_name, distance_func=distance_func, nb_points=nb_points)
 		estimated_tract_idx = np.where(y_pred>0)[0]
-		estimated_tract = tractogram[superset_idx_test[estimated_tract_idx]]
-		print("Time to compute classification of tract %s = %.2f seconds" %(tract_name, time.time()-t1))
-		np.save('estimated_idx_%s.npy' %tract_name, superset_idx_test[estimated_tract_idx])
+		print("Time to compute classification of %s = %.2f seconds" %(tract_name, time.time()-t1))
+
+		tractogram_native = nib.streamlines.load(tr_native)
+		aff = tractogram_native.affine
+		tractogram_native = tractogram_native.streamlines
+		print("Saving the bundle in native space...")
+		estimated_tract = tractogram_native[superset_idx_test[estimated_tract_idx]]
+		#np.save('estimated_idx_%s.npy' %tract_name, superset_idx_test[estimated_tract_idx])
 		out_fname = '%s/%s.trk' %(out_dir, tract_name)
-		save_trk(estimated_tract, out_fname)
+		save_trk(estimated_tract, out_fname, affine=aff)
 		print("Tract saved in %s" %out_fname)
 
 
@@ -73,8 +78,10 @@ if __name__ == '__main__':
 	np.random.seed(0) 
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-static', nargs='?',  const=1, default='',
-	                    help='The static tractogram filename')
+	parser.add_argument('-tr_mni', nargs='?',  const=1, default='',
+	                    help='The aligned tractogram filename')
+	parser.add_argument('-tr_native', nargs='?',  const=1, default='',
+	                    help='The native tractogram filename')
 	parser.add_argument('-src_dir', nargs='?',  const=1, default='',
 	                    help='The training results directory')
 	parser.add_argument('-config', nargs='?',  const=1, default='',
@@ -98,7 +105,7 @@ if __name__ == '__main__':
 	f.close()
 
 	print("----> Segmenting...")
-	test_multiple_examples(args.static, args.src_dir, tract_name_list, args.out_dir)
+	test_multiple_examples(args.tr_mni, args.tr_native, args.src_dir, tract_name_list, args.out_dir)
 	print("Total time elapsed = %i minutes" %((time.time()-t0)/60))
 
 	sys.exit()
