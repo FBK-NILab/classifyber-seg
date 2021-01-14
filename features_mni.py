@@ -152,4 +152,3 @@ def compute_feature_matrix(superset, tract_name, distance_func=distance_func, nb
 	print("----> Size of final feature matrix: (%s, %s)" %(X_tmp.shape))
 
 	return np.array(X_tmp, dtype=np.float32)
-
